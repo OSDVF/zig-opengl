@@ -59,11 +59,11 @@ class Program
       .OrderBy(f => f.Number)
       .ToArray();
 
-    var wanted_extensions = registry.Extensions
+    var wanted_extensions = extensions[0] == "all" ? registry.Extensions : registry.Extensions
       .Where(e => extensions.Contains(e.Name))
       .ToArray();
 
-    if (wanted_extensions.Length != extensions.Length)
+    if (wanted_extensions.Length != extensions.Length && extensions[0] != "all")
     {
       Console.Error.WriteLine("The following extensions could not be found:");
       foreach (var ext in extensions.Where(e => !wanted_extensions.Any(e2 => e2.Name == e)))
@@ -73,20 +73,18 @@ class Program
       return 1;
     }
 
-
-    foreach (var ext in wanted_extensions)
+    var incompatible_extensions = wanted_extensions.Where(e => !e.IsCompatibleTo(target_feature)).ToArray();
+    foreach (var ext in incompatible_extensions)
     {
-      if (!ext.IsCompatibleTo(target_feature))
-      {
-        Console.Error.WriteLine("{0} is not compatible to {1}", ext.Name, api_version);
-        return 1;
-      }
+      Console.Error.WriteLine("{0} is not compatible to {1}", ext.Name, api_version);
+    }
+    var compatible_extensions = wanted_extensions.Where(e => e.IsCompatibleTo(target_feature)).ToArray();
+    wanted_extensions = compatible_extensions;
+    foreach(var ext in wanted_extensions){
       if (ext.Removes != null)
       {
         Console.Error.WriteLine("{0} would remove features. This is not supported yet.", ext.Name);
-        return 1;
       }
-
     }
 
     var final_feature_set = new HashSet<FeatureComponent>();
@@ -191,7 +189,7 @@ class Program
       stream.WriteLine("const function_pointers = struct {");
       foreach (var cmd in all_commands)
       {
-        stream.WriteLine("    var {0}: *const function_signatures.{0} = undefined;", cmd.Prototype.Name);
+        stream.WriteLine("    pub var {0}: *const function_signatures.{0} = undefined;", cmd.Prototype.Name);
       }
       stream.WriteLine("};");
 
@@ -224,7 +222,7 @@ class Program
         else if (feature is EnumFeature en)
         {
           var empty = new Enum[0];
-          set.enums.Add(registry.Enums.SelectMany(e => e.Items ?? empty).Single(e => e.Name == en.Name));
+          set.enums.Add(registry.Enums.SelectMany(e => e.Items ?? empty).First(e => e.Name == en.Name));
         }
       }
       return set;
