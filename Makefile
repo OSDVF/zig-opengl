@@ -9,6 +9,7 @@ GENERATOR?=$(EXE)
 
 all: \
 	$(EXE) \
+	mkdir -p exports \
 	exports/gl_1v1.zig \
 	exports/gl_1v2.zig \
 	exports/gl_1v3.zig \
